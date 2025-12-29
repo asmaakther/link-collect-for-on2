@@ -1,0 +1,20 @@
+name: Manual Movie Scrape
+on:
+  workflow_dispatch:
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - run: pip install -r requirements.txt
+      - run: python movie_scraper.py
+      - run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add movies.json
+          git commit -m "Update" || echo "No changes"
+          git push
