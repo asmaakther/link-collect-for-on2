@@ -1,21 +1,28 @@
 import json
 import time
+import os
 from seleniumwire import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 
 def scrape_movie():
-    # ব্রাউজার সেটিংস (গিটহাবের জন্য জরুরি)
     options = Options()
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--remote-debugging-port=9222')
 
-    # ড্রাইভার সেটআপ
+    # Selenium-wire specific settings for GitHub Actions
+    wire_options = {
+        'request_storage_base_dir': '/tmp', # টেম্পোরারি ফাইল রাখার জায়গা
+        'verify_ssl': False
+    }
+
     driver = webdriver.Chrome(
         service=Service(ChromeDriverManager().install()),
-        options=options
+        options=options,
+        seleniumwire_options=wire_options
     )
 
     target_url = "https://www.watch-movies.com.pk/deva-2024-hindi-movie-watch-online-free/"
@@ -24,33 +31,32 @@ def scrape_movie():
     try:
         print(f"Browsing: {target_url}")
         driver.get(target_url)
-        
-        # ভিডিও লোড হওয়ার জন্য ১৫ সেকেন্ড অপেক্ষা করুন
-        time.sleep(15)
+        time.sleep(20) # সাইটটি লোড হতে সময় নেয়
 
-        # নেটওয়ার্ক ট্রাফিক থেকে m3u8 বা mp4 লিঙ্ক খোঁজা
         for request in driver.requests:
             if request.response:
                 url = request.url
                 if ".m3u8" in url or ".mp4" in url:
-                    if "googlevideo" not in url: # ফালতু গুগল অ্যাড বাদ দিতে
+                    if "googlevideo" not in url and "ads" not in url:
                         found_links.append(url)
 
-        # রেজাল্ট JSON এ সেভ করা
         data = {
             "movie_name": "Deva",
             "source_url": target_url,
-            "video_links": list(set(found_links)), # ডুপ্লিকেট লিঙ্ক বাদ দিতে
+            "video_links": list(set(found_links)),
             "last_updated": time.ctime()
         }
 
         with open('movies.json', 'w') as f:
             json.dump(data, f, indent=4)
         
-        print("Success! JSON file updated.")
+        print(f"Success! Found {len(found_links)} links.")
 
     except Exception as e:
         print(f"Error occurred: {e}")
+        # এরর আসলে স্ক্রিপ্ট ফেইল করানোর জন্য exit(1) ব্যবহার করা হয়
+        import sys
+        sys.exit(1)
     finally:
         driver.quit()
 
