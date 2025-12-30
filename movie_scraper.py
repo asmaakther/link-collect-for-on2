@@ -1,81 +1,84 @@
 import json
+import os
 import time
 import sys
-import os
 from seleniumwire import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 
-def scrape_movie():
-    print("Initializing Chrome in Headless Mode...")
+TARGET_SITES = [
+    "https://www.watch-movies.com.pk",
+    "https://www.movi.pk"
+]
+
+def scrape_logic():
+    # ম্যানুয়াল মুভি লিস্ট
+    MOVIE_NAMES = ["Deva (2025) Hindi", "Dhurandhar (2025) Hindi"]
+    
+    # পুরাতন ডাটা লোড
+    all_movies = []
+    if os.path.exists('movies.json'):
+        with open('movies.json', 'r', encoding='utf-8') as f:
+            all_movies = json.load(f)
+    
+    existing_data = {m['name'].upper(): m for m in all_movies}
+
+    # ব্রাউজার সেটআপ
     options = Options()
     options.add_argument('--headless=new')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--disable-gpu')
-    options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    
+    wire_options = {'request_storage_base_dir': '/tmp', 'verify_ssl': False}
+    
+    driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=options,
+        seleniumwire_options=wire_options
+    )
 
-    # Selenium-wire options for GitHub Actions environment
-    wire_options = {
-        'request_storage_base_dir': '/tmp',
-        'verify_ssl': False
-    }
+    for movie in MOVIE_NAMES:
+        movie_upper = movie.upper()
+        print(f"Searching for: {movie_upper}")
+        current_links = set(existing_data.get(movie_upper, {}).get('links', []))
 
-    driver = None
-    try:
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(
-            service=service,
-            options=options,
-            seleniumwire_options=wire_options
-        )
+        for site in TARGET_SITES:
+            try:
+                # ১. সার্চ পেজে যাওয়া
+                search_url = f"{site}/?s={movie.replace(' ', '+')}"
+                driver.get(search_url)
+                time.sleep(5)
 
-        target_url = "https://www.watch-movies.com.pk/deva-2024-hindi-movie-watch-online-free/"
-        print(f"Browsing: {target_url}")
-        
-        # টাইমআউট সেট করা
-        driver.set_page_load_timeout(60)
-        driver.get(target_url)
-        
-        print("Waiting for video elements to load (30 seconds)...")
-        time.sleep(30) # মুভি সাইটগুলো লোড হতে অনেক সময় নেয়
+                # ২. প্রথম মুভি পোস্টের লিঙ্ক খুঁজে বের করা (সাধারণত এ ট্যাগ থাকে)
+                # আমরা ধরে নিচ্ছি সার্চ রেজাল্টের প্রথম লিঙ্কে মুভি আছে
+                page_source = driver.page_source
+                if movie.split(' ')[0].lower() in page_source.lower():
+                    # এখানে ড্রাউভারকে সরাসরি মুভি পেজে নিয়ে যাওয়ার লজিক
+                    # উদাহরণস্বরূপ সরাসরি পেজে ভিজিট করছি
+                    target_movie_page = driver.current_url 
+                    
+                    print(f"Extracting links from network traffic...")
+                    # নেটওয়ার্ক ট্রাফিক চেক করা
+                    for request in driver.requests:
+                        if request.response:
+                            url = request.url
+                            if any(ext in url for ext in [".m3u8", ".mp4"]):
+                                if "google" not in url and "ads" not in url:
+                                    current_links.add(url)
+                                    print(f"Link Found: {url}")
+            except Exception as e:
+                print(f"Error on {site}: {e}")
+                continue
 
-        found_links = []
-        print("Searching network traffic for .m3u8 or .mp4...")
-        
-        for request in driver.requests:
-            if request.response:
-                url = request.url
-                # ভিডিও ফাইল ফরম্যাট চেক
-                if any(ext in url for ext in [".m3u8", ".mp4", "/playlist.m3u8"]):
-                    if "ads" not in url.lower() and "google" not in url.lower():
-                        found_links.append(url)
+        existing_data[movie_upper] = {"name": movie_upper, "links": list(current_links)}
 
-        # ইউনিক লিঙ্কগুলো ফিল্টার করা
-        unique_links = list(set(found_links))
-        
-        data = {
-            "movie_name": "Deva",
-            "video_links": unique_links,
-            "count": len(unique_links),
-            "last_updated": time.ctime()
-        }
-
-        with open('movies.json', 'w') as f:
-            json.dump(data, f, indent=4)
-        
-        if unique_links:
-            print(f"Success! Found {len(unique_links)} links.")
-        else:
-            print("Warning: No video links found. Site might be blocking the bot.")
-
-    except Exception as e:
-        print(f"!!! CRITICAL ERROR: {str(e)}")
-        sys.exit(1)
-    finally:
-        if driver:
-            driver.quit()
+    # JSON সেভ করা
+    with open('movies.json', 'w', encoding='utf-8') as f:
+        json.dump(list(existing_data.values()), f, indent=4, ensure_ascii=False)
+    
+    driver.quit()
+    print("Scraping Finished!")
 
 if __name__ == "__main__":
-    scrape_movie()
+    scrape_logic()
