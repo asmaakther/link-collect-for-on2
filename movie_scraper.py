@@ -1,6 +1,9 @@
-from seleniumwire import webdriver # selenium-wire ব্যবহার করুন নেটওয়ার্ক ইন্টারসেপ্ট করার জন্য
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
+# এটি অটোমেটিক সঠিক ড্রাইভার ডাউনলোড করবে
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
 def get_live_stream_link(url):
     options = webdriver.ChromeOptions()
