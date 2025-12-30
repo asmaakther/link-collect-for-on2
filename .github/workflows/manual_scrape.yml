@@ -11,14 +11,14 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install Chrome and WebDriver
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          
-      - name: Install Dependencies
+          sudo apt-get install -y google-chrome-stable libnss3 libgconf-2-4 libxi6 libgbm1
+
+      - name: Install Python Dependencies
         run: |
-          pip install selenium selenium-wire webdriver-manager requests
+          pip install selenium==4.9.0 selenium-wire==5.1.0 webdriver-manager requests
 
       - name: Run Scraper
         run: python movie_scraper.py
@@ -28,5 +28,5 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add movies.json
-          git commit -m "Update movies list" || echo "No changes to commit"
+          git commit -m "Update movies list" || echo "No changes"
           git push
