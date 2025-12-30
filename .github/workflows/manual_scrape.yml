@@ -6,21 +6,18 @@ jobs:
   run-scraper:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      - name: Install System Dependencies
+      - name: Install Dependencies
         run: |
-          sudo apt-get update
-          # libasound2 এর পরিবর্তে libasound2t64 ব্যবহার করা হয়েছে
-          sudo apt-get install -y google-chrome-stable libnss3 libgbm1 libasound2t64
-
-      - name: Install Python Dependencies
-        run: |
-          pip install --upgrade pip
-          pip install selenium==4.10.0 selenium-wire==5.1.0 webdriver-manager requests
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4
 
       - name: Run Scraper
         run: python movie_scraper.py
