@@ -1,20 +1,35 @@
 [
     {
         "movie": "Deva",
-        "links": [],
-        "total_found": 0,
-        "last_updated": "Tue Dec 30 04:17:04 2025"
+        "links": [
+            "https://vidsrc.me/embed/movie?tmdb=601912",
+            "https://2embed.org/embed/movie?tmdb=601912",
+            "https://autoembed.to/movie/tmdb/601912"
+        ],
+        "total_found": 3,
+        "method": "API Generation",
+        "updated": "Tue Dec 30 04:23:25 2025"
     },
     {
         "movie": "Dhurandhar",
-        "links": [],
-        "total_found": 0,
-        "last_updated": "Tue Dec 30 04:17:09 2025"
+        "links": [
+            "https://vidsrc.me/embed/movie?tmdb=1291608",
+            "https://2embed.org/embed/movie?tmdb=1291608",
+            "https://autoembed.to/movie/tmdb/1291608"
+        ],
+        "total_found": 3,
+        "method": "API Generation",
+        "updated": "Tue Dec 30 04:23:25 2025"
     },
     {
-        "movie": "Avatar",
-        "links": [],
-        "total_found": 0,
-        "last_updated": "Tue Dec 30 04:17:17 2025"
+        "movie": "Avatar: The Way of Water",
+        "links": [
+            "https://vidsrc.me/embed/movie?tmdb=76600",
+            "https://2embed.org/embed/movie?tmdb=76600",
+            "https://autoembed.to/movie/tmdb/76600"
+        ],
+        "total_found": 3,
+        "method": "API Generation",
+        "updated": "Tue Dec 30 04:23:26 2025"
     }
 ]
