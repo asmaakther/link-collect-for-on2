@@ -4,86 +4,93 @@ import os
 import re
 import time
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin
 
-# ১. মুভি সাইট ও হেডার
 TARGET_SITES = [
     "https://www.watch-movies.com.pk",
+     "https://moviebox.ph",
+     "https://movies123.pk",
     "https://www.movi.pk"
 ]
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
-def get_direct_video_links(page_url):
-    """পেজের ভেতর থেকে m3u8 বা ভিডিও সোর্স খুঁজে বের করার চেষ্টা করে"""
+def get_links_from_html(html_content, base_url):
+    """HTML কন্টেন্ট থেকে সব ধরণের m3u8, mp4 এবং ভিডিও সোর্স খুঁজে বের করে"""
     links = set()
-    try:
-        response = requests.get(page_url, headers=HEADERS, timeout=15)
-        # কন্টেন্টের ভেতর .m3u8 বা .mp4 আছে কিনা খোঁজা (Regex দিয়ে)
-        m3u8_links = re.findall(r'(https?://[^\s"\']+\.m3u8[^\s"\']*)', response.text)
-        mp4_links = re.findall(r'(https?://[^\s"\']+\.mp4[^\s"\']*)', response.text)
-        
-        for link in m3u8_links + mp4_links:
-            if "google" not in link and "ads" not in link:
-                links.add(link.replace('\\', '')) # ব্যাকস্ল্যাশ রিমুভ করা
+    
+    # ১. Regex ব্যবহার করে সরাসরি লিঙ্ক খোঁজা (Script এর ভেতর থেকে)
+    regex_patterns = [
+        r'(https?://[^\s"\']+\.m3u8[^\s"\']*)',
+        r'(https?://[^\s"\']+\.mp4[^\s"\']*)',
+        r'file:\s*["\'](https?://[^"\']+)["\']'
+    ]
+    
+    for pattern in regex_patterns:
+        found = re.findall(pattern, html_content)
+        for link in found:
+            clean_link = link.replace('\\', '')
+            if "google" not in clean_link and "ads" not in clean_link:
+                links.add(clean_link)
+    
+    # ২. BeautifulSoup দিয়ে iframe এবং source ট্যাগ খোঁজা
+    soup = BeautifulSoup(html_content, 'html.parser')
+    for tag in soup.find_all(['iframe', 'source', 'video', 'embed']):
+        src = tag.get('src') or tag.get('data-src')
+        if src:
+            full_url = urljoin(base_url, src)
+            if any(ext in full_url.lower() for ext in [".m3u8", ".mp4"]):
+                links.add(full_url)
+            # যদি থার্ড পার্টি প্লেয়ারের লিঙ্ক পায় (যেমন DoodStream, Streamwish)
+            elif any(provider in full_url for provider in ["dood", "streamwish", "voe", "fembed"]):
+                links.add(full_url)
                 
-        # যদি আইফ্রেম থাকে, তবে আইফ্রেমের সোর্স চেক করা
-        soup = BeautifulSoup(response.text, 'html.parser')
-        for iframe in soup.find_all('iframe'):
-            src = iframe.get('src')
-            if src:
-                print(f"Found iframe source: {src}")
-                # আপনি চাইলে এখানে আইফ্রেম সোর্সের ভেতরে গিয়েও আবার স্ক্র্যাপ করতে পারেন
-                
-    except Exception as e:
-        print(f"Error fetching {page_url}: {e}")
     return list(links)
 
 def main():
-    MOVIE_NAMES = ["Deva (2025)", "Dhurandhar (2025)"]
-    all_movies = []
-
-    # পুরাতন ডাটা লোড করা
-    if os.path.exists('movies.json'):
-        with open('movies.json', 'r', encoding='utf-8') as f:
-            all_movies = json.load(f)
-
-    existing_data = {m['name'].upper(): m for m in all_movies}
+    # আপনি যে মুভিগুলো খুঁজছেন
+    MOVIE_NAMES = ["Deva", "Bahubali","Undercover High School Hindi","Dhurandhar", "Avatar"]
+    all_movies_data = []
 
     for movie in MOVIE_NAMES:
-        movie_upper = movie.upper()
-        print(f"Searching for: {movie_upper}")
+        print(f"Searching for Movie: {movie}")
+        movie_links = set()
         
-        links_found = []
         for site in TARGET_SITES:
             try:
-                # সার্চ রেজাল্ট পেজ
+                # সার্চ পেজ ভিজিট
                 search_url = f"{site}/?s={movie.replace(' ', '+')}"
                 res = requests.get(search_url, headers=HEADERS, timeout=15)
                 soup = BeautifulSoup(res.text, 'html.parser')
                 
-                # প্রথম ১-২টি মুভি পোস্টের লিঙ্ক নেওয়া
+                # প্রথম ৩টি পোস্টের লিঙ্ক খুঁজে বের করা
+                post_count = 0
                 for a in soup.find_all('a', href=True):
-                    if movie.split(' ')[0].lower() in a.text.lower():
+                    if movie.lower() in a.text.lower() and post_count < 3:
                         post_url = a['href']
-                        print(f"Visiting Post: {post_url}")
-                        video_links = get_direct_video_links(post_url)
-                        links_found.extend(video_links)
-                        break # শুধু প্রথম পোস্টটি চেক করবে
-            except: continue
+                        print(f"   - Checking Post: {post_url}")
+                        
+                        post_res = requests.get(post_url, headers=HEADERS, timeout=15)
+                        links = get_links_from_html(post_res.text, post_url)
+                        movie_links.update(links)
+                        post_count += 1
+                        time.sleep(1)
+            except Exception as e:
+                print(f"   ! Error on {site}: {e}")
+                
+        all_movies_data.append({
+            "name": movie,
+            "links": list(movie_links),
+            "updated_at": time.ctime()
+        })
 
-        existing_data[movie_upper] = {
-            "name": movie_upper,
-            "links": list(set(links_found)),
-            "updated": time.ctime()
-        }
-
-    # JSON সেভ
+    # JSON ফাইলে সেভ করা
     with open('movies.json', 'w', encoding='utf-8') as f:
-        json.dump(list(existing_data.values()), f, indent=4, ensure_ascii=False)
+        json.dump(all_movies_data, f, indent=4, ensure_ascii=False)
     
-    print("Done! Check movies.json")
+    print("\nScraping Finished. Results saved to movies.json")
 
 if __name__ == "__main__":
     main()
