@@ -3,3 +3,4 @@ beautifulsoup4
 selenium
 selenium-wire
 webdriver-manager
+undetected-chromedriver
