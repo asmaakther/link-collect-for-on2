@@ -1,26 +1,20 @@
 [
     {
         "movie": "Deva",
-        "links": [
-            "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
-        ],
-        "total_links": 1,
-        "updated": "Tue Dec 30 04:06:30 2025"
+        "links": [],
+        "total_links_found": 0,
+        "last_updated": "Tue Dec 30 04:11:58 2025"
     },
     {
         "movie": "Dhurandhar",
-        "links": [
-            "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
-        ],
-        "total_links": 1,
-        "updated": "Tue Dec 30 04:06:33 2025"
+        "links": [],
+        "total_links_found": 0,
+        "last_updated": "Tue Dec 30 04:12:01 2025"
     },
     {
         "movie": "Avatar",
-        "links": [
-            "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
-        ],
-        "total_links": 1,
-        "updated": "Tue Dec 30 04:06:37 2025"
+        "links": [],
+        "total_links_found": 0,
+        "last_updated": "Tue Dec 30 04:12:05 2025"
     }
 ]
